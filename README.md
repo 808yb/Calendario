@@ -6,7 +6,7 @@ Calendario is a modern, lightweight scheduling platform designed for freelancers
 
 ## 📝 Attribution
 
-This project, **Calendario**, is based on [Calendario](https://github.com/TechWithEmmaYT/Fullstack-PERN-Meetly-Saas) by **TechWithEmmaYT**, licensed under the MIT License.
+This project, **Calendario**, is based on [Meetly](https://github.com/TechWithEmmaYT/Fullstack-PERN-Meetly-Saas) by **TechWithEmmaYT**, licensed under the MIT License.
 
 ---
 
