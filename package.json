@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "googleapis": "^149.0.0"
+  },
+  "name": "Fullstack-PERN-Calendario-Saas"
+}
