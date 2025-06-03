@@ -24,14 +24,29 @@ export const getUserAvailabilityService = async (userId: string) => {
     days: [],
   };
 
-  user.availability.days.forEach((dayAvailability) => {
-    availabilityData.days.push({
-      day: dayAvailability.day,
-      startTime: dayAvailability.startTime.toISOString().slice(11, 16),
-      endTime: dayAvailability.endTime.toISOString().slice(11, 16),
-      isAvailable: dayAvailability.isAvailable,
+  // If no days exist, return a default week (all days, unavailable, 09:00-17:00)
+  if (!user.availability.days || user.availability.days.length === 0) {
+    const defaultDays = [
+      "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"
+    ];
+    defaultDays.forEach((day) => {
+      availabilityData.days.push({
+        day,
+        startTime: "09:00",
+        endTime: "17:00",
+        isAvailable: false,
+      });
     });
-  });
+  } else {
+    user.availability.days.forEach((dayAvailability) => {
+      availabilityData.days.push({
+        day: dayAvailability.day,
+        startTime: dayAvailability.startTime.toISOString().slice(11, 16),
+        endTime: dayAvailability.endTime.toISOString().slice(11, 16),
+        isAvailable: dayAvailability.isAvailable,
+      });
+    });
+  }
 
   return availabilityData;
 };
@@ -42,6 +57,7 @@ export const updateAvailabilityService = async (
 ) => {
   const userRepository = AppDataSource.getRepository(User);
   const availabilityRepository = AppDataSource.getRepository(Availability);
+  const dayAvailabilityRepository = AppDataSource.getRepository(require('../database/entities/day-availability').DayAvailability);
 
   const user = await userRepository.findOne({
     where: { id: userId },
@@ -50,26 +66,27 @@ export const updateAvailabilityService = async (
 
   if (!user) throw new NotFoundException("User not found");
 
-  const dayAvailabilityData = data.days.map(
-    ({ day, isAvailable, startTime, endTime }) => {
-      const baseDate = new Date().toISOString().split("T")[0];
-      return {
-        day: day.toUpperCase() as DayOfWeekEnum,
-        startTime: new Date(`${baseDate}T${startTime}:00Z`),
-        endTime: new Date(`${baseDate}T${endTime}:00Z`),
-        isAvailable,
-      };
-    }
-  );
+  // Delete all existing DayAvailability rows for this user's availability
+  if (user.availability && user.availability.id) {
+    await dayAvailabilityRepository.delete({ availability: { id: user.availability.id } });
+  }
+
+  const baseDate = new Date().toISOString().split("T")[0];
+  const dayAvailabilityData = data.days.map(({ day, isAvailable, startTime, endTime }) => ({
+    day: day.toUpperCase() as DayOfWeekEnum,
+    startTime: new Date(`${baseDate}T${startTime}:00Z`),
+    endTime: new Date(`${baseDate}T${endTime}:00Z`),
+    isAvailable,
+    availability: { id: user.availability.id },
+  }));
 
   if (user.availability) {
+    // Save the new days
+    await dayAvailabilityRepository.save(dayAvailabilityData);
+    // Update the timeGap
     await availabilityRepository.save({
       id: user.availability.id,
       timeGap: data.timeGap,
-      days: dayAvailabilityData.map((day) => ({
-        ...day,
-        availability: { id: user.availability.id },
-      })),
     });
   }
 
@@ -203,8 +220,9 @@ function generateAvailableTimeSlots(
 ) {
   const slots = [];
 
-  let slotStartTime = parseISO(`${dateStr}T09:00:00`);
-  let slotEndTime = parseISO(`${dateStr}T16:30:00`);
+  // Use the actual startTime and endTime from DayAvailability, but set the date to dateStr
+  let slotStartTime = new Date(`${dateStr}T${startTime.toISOString().slice(11, 19)}`);
+  let slotEndTime = new Date(`${dateStr}T${endTime.toISOString().slice(11, 19)}`);
 
   const now = new Date();
   const isToday = format(now, "yyyy-MM-dd") === dateStr;

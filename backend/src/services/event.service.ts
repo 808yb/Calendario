@@ -165,3 +165,50 @@ export const deleteEventService = async (userId: string, eventId: string) => {
 
   return { success: true };
 };
+
+export const updateEventService = async (
+  userId: string,
+  eventId: string,
+  updateEventDto: CreateEventDto
+) => {
+  const eventRepository = AppDataSource.getRepository(Event);
+  const integrationRepository = AppDataSource.getRepository(Integration);
+
+  const event = await eventRepository.findOne({
+    where: { id: eventId, user: { id: userId } },
+  });
+
+  if (!event) {
+    throw new NotFoundException("Event not found");
+  }
+
+  if (
+    !Object.values(EventLocationEnumType)?.includes(updateEventDto.locationType)
+  ) {
+    throw new BadRequestException("Invalid location type");
+  }
+
+  if (updateEventDto.locationType === EventLocationEnumType.GOOGLE_MEET_AND_CALENDAR) {
+    const integration = await integrationRepository.findOne({
+      where: {
+        user: { id: userId },
+        app_type: IntegrationAppTypeEnum.GOOGLE_MEET_AND_CALENDAR,
+      },
+    });
+
+    if (!integration) {
+      throw new BadRequestException("Google Meet integration is required for this event type");
+    }
+  }
+
+  const slug = slugify(updateEventDto.title);
+
+  Object.assign(event, {
+    ...updateEventDto,
+    slug,
+  });
+
+  await eventRepository.save(event);
+
+  return event;
+};

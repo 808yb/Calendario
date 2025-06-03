@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Separator } from "./ui/separator";
 import { useStore } from "@/store/store";
-import { AUTH_ROUTES, PROTECTED_ROUTES } from "@/routes/common/routePaths";
+import { AUTH_ROUTES } from "@/routes/common/routePaths";
 import { SidebarTrigger } from "./ui/sidebar";
 import { useState } from "react";
 
@@ -70,24 +70,6 @@ const Header = () => {
                     Account setting
                   </h3>
                 </div>
-
-                <button
-                  role="menuitem"
-                  className="!p-[12px_16px] w-full cursor-pointer font-bold text-sm !text-[#0a2540] flex items-center gap-2 hover:!bg-[#e5efff]"
-                  onClick={() => navigate(PROTECTED_ROUTES.EVENT_TYPES)}
-                >
-                  <span>🏠</span>
-                  <span>Dashboard</span>
-                </button>
-
-                <button
-                  role="menuitem"
-                  className="!p-[12px_16px] w-full cursor-pointer font-bold text-sm !text-[#0a2540] flex items-center gap-2 hover:!bg-[#e5efff]"
-                  onClick={() => navigate(PROTECTED_ROUTES.INTEGRATIONS)}
-                >
-                  <span>🔗</span>
-                  <span>Integrations</span>
-                </button>
 
                 <button
                   role="menuitem"

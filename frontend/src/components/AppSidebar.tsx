@@ -65,7 +65,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       variant="sidebar"
       className={`${
         state !== "collapsed" ? "w-[260px]" : ""
-      } !bg-white !border-[#D4E162]`}
+      } !bg-white !border-[#D4E162] !block`}
       {...props}
     >
       <SidebarHeader

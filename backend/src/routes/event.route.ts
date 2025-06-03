@@ -7,6 +7,7 @@ import {
   getPublicEventsByUsernameController,
   getUserEventsController,
   toggleEventPrivacyController,
+  updateEventController,
 } from "../controllers/event.controller";
 
 const eventRoutes = Router();
@@ -29,4 +30,7 @@ eventRoutes.put(
 );
 
 eventRoutes.delete("/:eventId", passportAuthenticateJwt, deleteEventController);
+
+eventRoutes.put("/:eventId", passportAuthenticateJwt, updateEventController);
+
 export default eventRoutes;
