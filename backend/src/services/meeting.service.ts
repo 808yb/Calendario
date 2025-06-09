@@ -184,8 +184,14 @@ export const cancelMeetingService = async (meetingId: string) => {
   if (!meeting) throw new NotFoundException("Meeting not found");
 
   try {
+    // If the meeting is already cancelled, return success
+    if (meeting.status === MeetingStatus.CANCELLED) {
+      return { success: true };
+    }
+
     const calendarIntegration = await integrationRepository.findOne({
       where: {
+        user: { id: meeting.event.user.id },
         app_type:
           IntegrationAppTypeEnum[
             meeting.calendarAppType as keyof typeof IntegrationAppTypeEnum
@@ -194,45 +200,54 @@ export const cancelMeetingService = async (meetingId: string) => {
     });
 
     if (calendarIntegration) {
-      const { calendar, calendarType } = await getCalendarClient(
-        calendarIntegration.app_type,
-        calendarIntegration.access_token,
-        calendarIntegration.refresh_token,
-        calendarIntegration.expiry_date
-      );
-      switch (calendarType) {
-        case IntegrationAppTypeEnum.GOOGLE_MEET_AND_CALENDAR:
-          await calendar.events.delete({
-            calendarId: "primary",
-            eventId: meeting.calendarEventId,
-          });
-          break;
-        default:
-          throw new BadRequestException(
-            `Unsupported calendar provider: ${calendarType}`
-          );
+      try {
+        const { calendar, calendarType } = await getCalendarClient(
+          calendarIntegration.app_type,
+          calendarIntegration.access_token,
+          calendarIntegration.refresh_token,
+          calendarIntegration.expiry_date
+        );
+        switch (calendarType) {
+          case IntegrationAppTypeEnum.GOOGLE_MEET_AND_CALENDAR:
+            await calendar.events.delete({
+              calendarId: "primary",
+              eventId: meeting.calendarEventId,
+            });
+            break;
+          default:
+            console.warn(`Unsupported calendar provider: ${calendarType}`);
+        }
+      } catch (calendarError) {
+        console.error('Calendar deletion error:', calendarError);
+        // Continue with cancellation even if calendar deletion fails
       }
     }
 
-    // Send cancellation emails
-    await sendMeetingCancellationEmail(
-      meeting.event.user.email,
-      meeting.guestEmail,
-      {
-        title: meeting.event.title,
-        startTime: meeting.startTime,
-        endTime: meeting.endTime,
-        guestName: meeting.guestName,
-        hostName: meeting.event.user.name,
-      }
-    );
-  } catch (error) {
-    throw new BadRequestException("Failed to delete event from calendar");
-  }
+    try {
+      // Send cancellation emails
+      await sendMeetingCancellationEmail(
+        meeting.event.user.email,
+        meeting.guestEmail,
+        {
+          title: meeting.event.title,
+          startTime: meeting.startTime,
+          endTime: meeting.endTime,
+          guestName: meeting.guestName,
+          hostName: meeting.event.user.name,
+        }
+      );
+    } catch (emailError) {
+      console.error('Email sending error:', emailError);
+      // Continue with cancellation even if email sending fails
+    }
 
-  meeting.status = MeetingStatus.CANCELLED;
-  await meetingRepository.save(meeting);
-  return { success: true };
+    meeting.status = MeetingStatus.CANCELLED;
+    await meetingRepository.save(meeting);
+    return { success: true };
+  } catch (error) {
+    console.error('Meeting cancellation error:', error);
+    throw new BadRequestException("Failed to cancel meeting");
+  }
 };
 
 async function getCalendarClient(

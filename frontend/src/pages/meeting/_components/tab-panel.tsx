@@ -30,11 +30,11 @@ const TabPanel: FC<PropsType> = ({ period, meetings, isFetching }) => {
           queryKey: ["userMeetings"],
         });
         setPendingMeetingId(null);
-        toast.success(`${response.message}`);
+        toast.success(response.message || "Meeting cancelled successfully");
       },
-      onError: () => {
+      onError: (error: any) => {
         setPendingMeetingId(null);
-        toast.success("Failed to cancel meeting");
+        toast.error(error.response?.data?.message || "Failed to cancel meeting");
       },
     });
   };

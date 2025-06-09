@@ -47,13 +47,12 @@ export const createMeetBookingForGuestController = asyncHandlerAndValidation(
   }
 );
 
-export const cancelMeetingController = asyncHandlerAndValidation(
-  MeetingIdDTO,
-  "params",
-  async (req: Request, res: Response, meetingIdDto) => {
-    await cancelMeetingService(meetingIdDto.meetingId);
+export const cancelMeetingController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const meetingId = req.params.meetingId;
+    await cancelMeetingService(meetingId);
     return res.status(HTTPSTATUS.OK).json({
-      messsage: "Meeting cancelled successfully",
+      message: "Meeting cancelled successfully",
     });
   }
 );
